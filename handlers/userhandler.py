@@ -1,0 +1,73 @@
+from models import schemas
+from core.database import user_collection
+from handlers.exception import ErrorHandler
+from pymongo import ReturnDocument
+
+# from utils.passhashutils import Encryptor
+
+
+class Validate:
+    @staticmethod
+    def verify_email(email: str):
+        check_email = user_collection.find_one({"email": email})
+        if check_email:
+            return email
+        raise ErrorHandler.NotFound("Email not found")
+
+
+class UserManager:
+    @staticmethod
+    def create(request: schemas.User):
+        """
+        Insert a new user record.
+        A unique `id` will be created and provided in the response.
+        """
+        duplicate_user = user_collection.find_one({"email": request.email})
+        if not duplicate_user:
+            # Import Encryptor only when it's needed
+            from utils.passhashutils import Encryptor
+            hashed_password = Encryptor.hash_password(request.password)
+            new_user = user_collection.insert_one(
+                {**request.model_dump(exclude={"password"}), "password": hashed_password})
+            return {"id": str(new_user.inserted_id)}
+        return ErrorHandler.ALreadyExists("User already exists")
+
+    @staticmethod
+    def read():
+        """
+        Retrieve all student records.
+        """
+        count = user_collection.count_documents({})
+        if count > 0:
+            users = user_collection.find()
+            return users
+        else:
+            raise ErrorHandler.NotFound("No user found")
+
+    @staticmethod
+    def update(old_email: str, request: schemas.UpdateUserEmail):
+        is_email = Validate.verify_email(old_email)
+        if is_email:
+            user = user_collection.find_one_and_update(
+                {"email": old_email},
+                {"$set": request.model_dump(exclude=None)},
+                return_document=ReturnDocument.AFTER
+            )
+            if user is None:
+                raise ErrorHandler.NotFound("User not found")
+            updated_user = user_collection.find_one({"email": request.email})
+            if updated_user is None:
+                raise ErrorHandler.NotFound("User not found")
+            return updated_user
+        else:
+            raise ErrorHandler.InvalidData("Invalid email format")
+
+    @staticmethod
+    def delete(email: str):
+        """
+        Delete a student record.
+        """
+        user = user_collection.delete_one({"email": email})
+        if user.deleted_count == 0:
+            raise ErrorHandler.NotFound("User not found")
+        return {"message": "User deleted successfully"}
