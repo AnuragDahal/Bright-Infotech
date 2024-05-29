@@ -1,5 +1,5 @@
 from models import schemas
-from fastapi import Request, Depends
+from fastapi import Request, Depends, Response
 from core.database import user_collection
 from handlers.exception import ErrorHandler
 from pymongo import ReturnDocument
@@ -72,7 +72,7 @@ class UserManager:
             return ErrorHandler.Error("Bad request")
 
     @staticmethod
-    async def delete(request: Request):
+    async def delete(request: Request, res: Response):
         """
         Delete a user
         """
@@ -80,6 +80,7 @@ class UserManager:
         user_email = await verify_token(request)
         # Delete the user through the email
         deleted_user = user_collection.delete_one({"email": user_email})
+        res.delete_cookie('token')
         if deleted_user.deleted_count == 0:
             raise ErrorHandler.NotFound("User not found")
         return {"message": "User deleted successfully"}

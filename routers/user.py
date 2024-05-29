@@ -1,4 +1,4 @@
-from fastapi import APIRouter, status, Request, Depends
+from fastapi import APIRouter, status, Request, Depends, Response
 from handlers.userhandler import UserManager
 from typing import List
 from config.dependencies import verify_token
@@ -28,7 +28,7 @@ async def update_user(old_email: str, request: Request, new_email: schemas.Updat
 
 
 @router.delete("/delete", status_code=status.HTTP_200_OK,)
-async def delete_user(request: Request, depends=Depends(verify_token)):
+async def delete_user(request: Request, res: Response, depends=Depends(verify_token)):
 
-    user = await UserManager.delete(request)
+    user = await UserManager.delete(request, res)
     return user

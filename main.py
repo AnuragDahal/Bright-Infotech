@@ -20,8 +20,9 @@ except Exception as e:
     print(e)
 
 
+@app.get("/")
 def root():
-    return {"message": "Hello World"}
+    return {"message": "Welcome to FastAPI", "status": "running"}
 
 
 # include routers from routers folder
