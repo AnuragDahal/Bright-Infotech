@@ -35,7 +35,7 @@ class UserManager:
     @staticmethod
     def read():
         """
-        Retrieve all student records.
+        Retrieve all user records.
         """
         count = user_collection.count_documents({})
         if count > 0:
@@ -55,17 +55,14 @@ class UserManager:
             )
             if user is None:
                 raise ErrorHandler.NotFound("User not found")
-            updated_user = user_collection.find_one({"email": request.email})
-            if updated_user is None:
-                raise ErrorHandler.NotFound("User not found")
-            return updated_user
+            return user
         else:
             raise ErrorHandler.InvalidData("Invalid email format")
 
     @staticmethod
     def delete(email: str):
         """
-        Delete a student record.
+        Delete a user
         """
         user = user_collection.delete_one({"email": email})
         if user.deleted_count == 0:
