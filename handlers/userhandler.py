@@ -1,7 +1,9 @@
 from models import schemas
+from fastapi import Request, Depends
 from core.database import user_collection
 from handlers.exception import ErrorHandler
 from pymongo import ReturnDocument
+from config.dependencies import verify_token
 
 # from utils.passhashutils import Encryptor
 
@@ -45,11 +47,21 @@ class UserManager:
             raise ErrorHandler.NotFound("No user found")
 
     @staticmethod
-    def update(old_email: str, request: schemas.UpdateUserEmail):
-        is_email = Validate.verify_email(old_email)
-        if is_email:
+    def update(old_email: str, request: Request, new_email: schemas.UpdateUserEmail):
+        """"""
+        # Get the user email from the cookie
+        logged_in_user_email = verify_token(request)
+        if not logged_in_user_email:
+            raise ErrorHandler.Unauthorized("Login first")
+        # Check email from the cookie and the email to be updated are same
+        if old_email != logged_in_user_email:
+            raise ErrorHandler.Forbidden(
+                "You are not authorized to perform this action")
+            # check if the new email entered is available or not
+        is_available = user_collection.find_one({"email": new_email})
+        if not is_available:
             user = user_collection.find_one_and_update(
-                {"email": old_email},
+                {"email": logged_in_user_email},
                 {"$set": request.model_dump(exclude=None)},
                 return_document=ReturnDocument.AFTER
             )
@@ -57,14 +69,17 @@ class UserManager:
                 raise ErrorHandler.NotFound("User not found")
             return user
         else:
-            raise ErrorHandler.InvalidData("Invalid email format")
+            return ErrorHandler.Error("Bad request")
 
     @staticmethod
-    def delete(email: str):
+    def delete(request: Request):
         """
         Delete a user
         """
-        user = user_collection.delete_one({"email": email})
-        if user.deleted_count == 0:
+        # Get the user email from the cookie
+        user_email = verify_token(request)
+        # Delete the user through the email
+        deleted_user = user_collection.delete_one({"email": user_email})
+        if deleted_user.deleted_count == 0:
             raise ErrorHandler.NotFound("User not found")
         return {"message": "User deleted successfully"}
