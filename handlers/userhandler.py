@@ -47,22 +47,22 @@ class UserManager:
             raise ErrorHandler.NotFound("No user found")
 
     @staticmethod
-    def update(old_email: str, request: Request, new_email: schemas.UpdateUserEmail):
+    async def update(old_email: str, request: Request, new_email: schemas.UpdateUserEmail):
         """"""
         # Get the user email from the cookie
-        logged_in_user_email = verify_token(request)
-        if not logged_in_user_email:
-            raise ErrorHandler.Unauthorized("Login first")
+        logged_in_user_email = await verify_token(request)
+        print(logged_in_user_email)
+        print(old_email)
         # Check email from the cookie and the email to be updated are same
         if old_email != logged_in_user_email:
             raise ErrorHandler.Forbidden(
-                "You are not authorized to perform this action")
+                "You are not authotrized to perform this action")
             # check if the new email entered is available or not
-        is_available = user_collection.find_one({"email": new_email})
+        is_available = user_collection.find_one({"email": new_email.email})
         if not is_available:
             user = user_collection.find_one_and_update(
                 {"email": logged_in_user_email},
-                {"$set": request.model_dump(exclude=None)},
+                {"$set": {"email": new_email.email}},
                 return_document=ReturnDocument.AFTER
             )
             if user is None:
@@ -72,12 +72,12 @@ class UserManager:
             return ErrorHandler.Error("Bad request")
 
     @staticmethod
-    def delete(request: Request):
+    async def delete(request: Request):
         """
         Delete a user
         """
         # Get the user email from the cookie
-        user_email = verify_token(request)
+        user_email = await verify_token(request)
         # Delete the user through the email
         deleted_user = user_collection.delete_one({"email": user_email})
         if deleted_user.deleted_count == 0:
