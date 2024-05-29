@@ -6,8 +6,8 @@ This project is a basic user management system implemented with MongoDB. It incl
 
 - `GET /user`: Fetch all users
 - `POST /user`: Create a new user
-- `PATCH/email` : Update the email 
-- `DELETE/email`: Delete the user through email
+- `PATCH/update/{email}` : Update the email
+- `DELETE/delete`: Delete the user through email
 
 
 ## Authentication Routes
